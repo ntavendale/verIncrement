@@ -151,7 +151,7 @@ begin
   Result.Major := a.Major;
   Result.Minor := a.Minor;
   Result.Release := a.Release;
-  if 0 <= a.Build then
+  if 0 = a.Build then
     raise Exception.Create(String.Format('Invalid build number %d', [a.Build]));
   Result.Build := a.Build - 1;
 end;

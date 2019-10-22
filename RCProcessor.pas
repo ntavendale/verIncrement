@@ -9,21 +9,21 @@ type
   TRCProcessor = class
     private
       FFileName: String;
-      FVersion: String;
       FFileContents: TStringList;
       function GetVersion: TBuildVersion;
     public
-      constructor Create(AFileName: String; ABaseVersion: String);
+      constructor Create(AFileName: String);
       destructor Destroy; override;
       procedure SetVersion(AVersion: TBuildVersion);
+      procedure Save;
+      property Version: TBuildVersion read GetVersion;
   end;
 
 implementation
 
-constructor TRCProcessor.Create(AFileName: String; ABaseVersion: String);
+constructor TRCProcessor.Create(AFileName: String);
 begin
   FFileName := AFileName;
-  FVersion := ABaseVersion;
   FFileContents := TStringList.Create;
   FFileContents.LoadFromFile(FFileName);
 end;
@@ -82,10 +82,15 @@ begin
     if -1 <> FFileContents[i].IndexOf('PRODUCTVERSION') then
       FFileContents[i] := String.Format('PRODUCTVERSION %d,%d,%d,%d', [AVersion.Major, AVersion.Minor, AVersion.Release, AVersion.Build]);
     if -1 <> FFileContents[i].IndexOf('VALUE "ProductVersion",') then
-      FFileContents[i] := String.Format('VALUE "ProductVersion", "%d,%d,%d,%d\0"', [AVersion.Major, AVersion.Minor, AVersion.Release, AVersion.Build]);
+      FFileContents[i] := String.Format('         VALUE "ProductVersion", "%d,%d,%d,%d\0"', [AVersion.Major, AVersion.Minor, AVersion.Release, AVersion.Build]);
     if -1 <> FFileContents[i].IndexOf('VALUE "FileVersion",') then
-      FFileContents[i] := String.Format('VALUE "FileVersion", "%d,%d,%d,%d\0"', [AVersion.Major, AVersion.Minor, AVersion.Release, AVersion.Build]);
+      FFileContents[i] := String.Format('         VALUE "FileVersion", "%d,%d,%d,%d\0"', [AVersion.Major, AVersion.Minor, AVersion.Release, AVersion.Build]);
   end;
+end;
+
+procedure TRCProcessor.Save;
+begin
+  FFileContents.SaveToFile(FFileName);
 end;
 
 end.

@@ -6,6 +6,7 @@ program verIncrement;
 
 uses
   System.SysUtils,
+  System.IOUtils,
   BuildVersion in 'BuildVersion.pas',
   RCProcessor in 'RCProcessor.pas';
 
@@ -37,9 +38,50 @@ begin
   end;
 end;
 
+function DecrementBy: Integer;
 var
   i: Integer;
+begin
+  Result := 0;
+  for i := 1 to ParamCount do
+  begin
+    if ('-D' = ParamStr(i).ToUpper) or ('/D'  = ParamStr(i).ToUpper) then
+    begin
+      try
+        Result := StrToIntDef(ParamStr(i + 1), 1);
+      except
+        Result := 1;
+      end;
+      EXIT;
+    end;
+  end;
+end;
+
+function IncrementBy: Integer;
+var
+  i: Integer;
+begin
+  Result := 1;
+  for i := 1 to ParamCount do
+  begin
+    if ('-I' = ParamStr(i).ToUpper) or ('/I'  = ParamStr(i).ToUpper) then
+    begin
+      try
+        Result := StrToIntDef(ParamStr(i + 1), 1);
+      except
+        Result := 1;
+      end;
+      EXIT;
+    end;
+  end;
+end;
+
+var
   LVer: String;
+  LCurrentVersion: TBuildVersion;
+  LFile: String;
+  LDec, LInc: Integer;
+  LRCProcessor : TRCProcessor;
 begin
   try
     if 0 = ParamCount then
@@ -50,11 +92,43 @@ begin
 
     LVer := VersionOverride;
 
-    for i := 1 to (ParamCount - 1) do
-    begin
+    LDec := DecrementBy;
+    LInc := IncrementBy;
 
+    LFile := ParamStr(ParamCount);
+    if not TFile.Exists(LFile) then
+    begin
+      WriteLn(String.Format('File %s does not exist!', [LFile]));
+      ExitCode := 1;
     end;
-    { TODO -oUser -cConsole Main : Insert code here }
+
+    LRCProcessor := TRCProcessor.Create(LFile);
+    try
+      if not String.IsNullOrWhiteSpace(LVer) then
+      begin
+        LCurrentVersion := LVer;
+      end else
+      begin
+        LCurrentVersion := LRCProcessor.Version;
+      end;
+
+      if LDec <> 0 then
+      begin
+        try
+          LCurrentVersion.Build := LCurrentVersion.Build - LDec;
+        except
+          LCurrentVersion.Build := 0;
+        end;
+      end else
+      begin
+        LCurrentVersion.Build := LCurrentVersion.Build + LInc;
+      end;
+      LRCProcessor.SetVersion(LCurrentVersion);
+      LRCProcessor.Save;
+      TFile.WriteAllText(IncludeTrailingPathDelimiter(ExtractFileDir(ParamStr(0))) + 'currentVersion.json', String.Format('{"major":%d,"minor":%d,"release":%d,"build":%d}', [LCurrentVersion.Major, LCurrentVersion.Minor, LCurrentVersion.Release, LCurrentVersion.Build]));
+    finally
+      LRCProcessor.Free;
+    end;
   except
     on E: Exception do
     begin
